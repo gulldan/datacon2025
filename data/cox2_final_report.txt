@@ -1,0 +1,27 @@
+============================================================
+COX-2 DATASET SUMMARY REPORT
+============================================================
+
+DATASET OVERVIEW
+Total molecules: 3,661
+Dataset shape: (3661, 48)
+
+ACTIVITY STATISTICS
+IC50 range: 0.01 - 223342021.07 nM
+Median IC50: 1800.00 nM
+Mean IC50: 207557.14 nM
+
+ACTIVITY CLASSIFICATION
+Low Activity: 2,036 (55.6%)
+Moderately Active: 854 (23.3%)
+Highly Active: 771 (21.1%)
+
+MOLECULAR PROPERTIES
+Average molecular weight: 362.9 Da
+Average LogP: 3.44
+Average TPSA: 73.1 Ų
+
+DRUG-LIKENESS
+Lipinski compliant: 3,661 (100.0%)
+
+============================================================
