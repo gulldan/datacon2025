@@ -309,7 +309,12 @@ def create_summary_dashboard(datasets: dict[str, pl.DataFrame], statistics: dict
                     "align": "left",
                     "font": {"size": 12, "color": "black"},
                 },
-                cells={"values": list(zip(*table_data, strict=False)), "fill_color": "white", "align": "left", "font": {"size": 11}},
+                cells={
+                    "values": list(zip(*table_data, strict=False)),
+                    "fill_color": "white",
+                    "align": "left",
+                    "font": {"size": 11},
+                },
             )
         ]
     )
