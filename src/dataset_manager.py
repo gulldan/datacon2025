@@ -18,6 +18,7 @@ def create_dataset_combinations(
     rdkit_filtered: pl.DataFrame,
     mordred_filtered: pl.DataFrame | None,
     filtered_fingerprints: dict[str, pl.DataFrame],
+    padel_filtered: pl.DataFrame | None = None,
 ) -> dict[str, pl.DataFrame]:
     """Создаёт различные комбинации датасетов для мини-таска 3.
 
@@ -26,6 +27,7 @@ def create_dataset_combinations(
         rdkit_filtered: Отфильтрованные RDKit дескрипторы.
         mordred_filtered: Отфильтрованные Mordred дескрипторы (если доступны).
         filtered_fingerprints: Словарь с отфильтрованными фингерпринтами.
+        padel_filtered: Отфильтрованные PaDEL дескрипторы (если доступны).
 
     Returns:
         Словарь с различными комбинациями датасетов.
@@ -51,6 +53,13 @@ def create_dataset_combinations(
         datasets_to_save["mordred_descriptors"] = mordred_dataset
         logger.info(f"Успешно: Mordred датасет: {mordred_dataset.shape}")
 
+    # 2a. Датасет с PaDEL дескрипторами (если доступны)
+    if padel_filtered is not None:
+        padel_with_prefix = padel_filtered.rename({col: f"padel_{col}" for col in padel_filtered.columns})
+        padel_dataset = pl.concat([base_data, padel_with_prefix], how="horizontal")
+        datasets_to_save["padel_descriptors"] = padel_dataset
+        logger.info(f"Успешно: PaDEL датасет: {padel_dataset.shape}")
+
     # 3. Датасеты с фингерпринтами
     for fp_type, fp_df in filtered_fingerprints.items():
         fp_with_prefix = fp_df.rename({col: f"{fp_type}_{col}" for col in fp_df.columns})
@@ -71,30 +80,44 @@ def create_dataset_combinations(
         datasets_to_save["combined_rdkit_morgan"] = combined_dataset
         logger.info(f"Успешно: Комбинированный датасет (RDKit + Morgan): {combined_dataset.shape}")
 
-    # 5. Если доступен Mordred, создаём лучший комбинированный датасет
-    if mordred_filtered is not None and "morgan_1024" in filtered_fingerprints:
-        # Объединяем лучшие дескрипторы из каждого типа
-        rdkit_top50 = rdkit_filtered.select(rdkit_filtered.columns[:50]) if rdkit_filtered.shape[1] >= 50 else rdkit_filtered
-        mordred_top100 = (
-            mordred_filtered.select(mordred_filtered.columns[:100]) if mordred_filtered.shape[1] >= 100 else mordred_filtered
-        )
+    # 5. Создаём лучший комбинированный датасет с всеми доступными дескрипторами
+    if "morgan_1024" in filtered_fingerprints:
+        components_to_combine = [base_data]
 
-        # Добавляем prefixes к колонкам для избежания дубликатов
-        rdkit_top50_prefixed = rdkit_top50.rename({col: f"rdkit_{col}" for col in rdkit_top50.columns})
-        mordred_top100_prefixed = mordred_top100.rename({col: f"mordred_{col}" for col in mordred_top100.columns})
+        # Отбираем топ дескрипторы из каждого типа для оптимального баланса
+        if rdkit_filtered.shape[1] >= 50:
+            rdkit_top50 = rdkit_filtered.select(rdkit_filtered.columns[:50])
+            rdkit_top50_prefixed = rdkit_top50.rename({col: f"rdkit_{col}" for col in rdkit_top50.columns})
+            components_to_combine.append(rdkit_top50_prefixed)
+        else:
+            rdkit_prefixed = rdkit_filtered.rename({col: f"rdkit_{col}" for col in rdkit_filtered.columns})
+            components_to_combine.append(rdkit_prefixed)
+
+        # Добавляем Mordred если доступен
+        if mordred_filtered is not None:
+            if mordred_filtered.shape[1] >= 100:
+                mordred_top100 = mordred_filtered.select(mordred_filtered.columns[:100])
+                mordred_top100_prefixed = mordred_top100.rename({col: f"mordred_{col}" for col in mordred_top100.columns})
+            else:
+                mordred_top100_prefixed = mordred_filtered.rename({col: f"mordred_{col}" for col in mordred_filtered.columns})
+            components_to_combine.append(mordred_top100_prefixed)
+
+        # Добавляем PaDEL если доступен
+        if padel_filtered is not None:
+            if padel_filtered.shape[1] >= 150:
+                padel_top150 = padel_filtered.select(padel_filtered.columns[:150])
+                padel_top150_prefixed = padel_top150.rename({col: f"padel_{col}" for col in padel_top150.columns})
+            else:
+                padel_top150_prefixed = padel_filtered.rename({col: f"padel_{col}" for col in padel_filtered.columns})
+            components_to_combine.append(padel_top150_prefixed)
+
+        # Добавляем Morgan фингерпринты
         morgan_prefixed = filtered_fingerprints["morgan_1024"].rename(
             {col: f"morgan_1024_{col}" for col in filtered_fingerprints["morgan_1024"].columns}
         )
+        components_to_combine.append(morgan_prefixed)
 
-        best_combined = pl.concat(
-            [
-                base_data,
-                rdkit_top50_prefixed,  # Топ-50 RDKit дескрипторов с префиксом rdkit_
-                mordred_top100_prefixed,  # Топ-100 Mordred дескрипторов с префиксом mordred_
-                morgan_prefixed,  # Morgan фингерпринты с префиксом morgan_1024_
-            ],
-            how="horizontal",
-        )
+        best_combined = pl.concat(components_to_combine, how="horizontal")
         datasets_to_save["best_combined"] = best_combined
         logger.info(f"Успешно: Лучший комбинированный датасет: {best_combined.shape}")
 
@@ -142,6 +165,8 @@ def create_report(
     fingerprint_dfs: dict[str, pl.DataFrame],
     filtered_fingerprints: dict[str, pl.DataFrame],
     output_path: Path,
+    padel_descriptors: pl.DataFrame | None = None,
+    padel_filtered: pl.DataFrame | None = None,
 ) -> None:
     """Создаёт сводный отчёт по расчёту дескрипторов.
 
@@ -155,6 +180,8 @@ def create_report(
         fingerprint_dfs: Исходные фингерпринты.
         filtered_fingerprints: Отфильтрованные фингерпринты.
         output_path: Путь для сохранения отчёта.
+        padel_descriptors: Исходные PaDEL дескрипторы.
+        padel_filtered: Отфильтрованные PaDEL дескрипторы.
 
     Raises:
         OSError: Если не удалось сохранить отчёт.
@@ -170,6 +197,9 @@ def create_report(
 
     if mordred_descriptors is not None and mordred_filtered is not None:
         report_lines.append(f"- Mordred: {mordred_descriptors.shape[1]} → {mordred_filtered.shape[1]} (после фильтрации)")
+
+    if padel_descriptors is not None and padel_filtered is not None:
+        report_lines.append(f"- PaDEL: {padel_descriptors.shape[1]} → {padel_filtered.shape[1]} (после фильтрации)")
 
     report_lines.extend(["", "## Фингерпринты:"])
 

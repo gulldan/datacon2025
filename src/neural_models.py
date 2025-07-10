@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 class MLPRegressor(nn.Module):
     """Многослойный перцептрон для регрессии."""
 
-    def __init__(self, input_size: int, hidden_sizes: list[int] = [512, 256, 128], dropout_rate: float = 0.3):
+    def __init__(self, input_size: int, hidden_sizes: list[int] | None = None, dropout_rate: float = 0.3) -> None:
         """Инициализация MLP модели.
 
         Args:
@@ -29,6 +29,8 @@ class MLPRegressor(nn.Module):
             hidden_sizes: Список размеров скрытых слоев.
             dropout_rate: Вероятность dropout.
         """
+        if hidden_sizes is None:
+            hidden_sizes = [512, 256, 128]
         super().__init__()
 
         layers = []
@@ -59,7 +61,9 @@ class MLPRegressor(nn.Module):
 class CNNRegressor(nn.Module):
     """Сверточная нейронная сеть для регрессии."""
 
-    def __init__(self, input_size: int, num_filters: int = 64, kernel_sizes: list[int] = [3, 5, 7], dropout_rate: float = 0.3):
+    def __init__(
+        self, input_size: int, num_filters: int = 64, kernel_sizes: list[int] | None = None, dropout_rate: float = 0.3
+    ) -> None:
         """Инициализация CNN модели.
 
         Args:
@@ -68,6 +72,8 @@ class CNNRegressor(nn.Module):
             kernel_sizes: Размеры ядер свертки.
             dropout_rate: Вероятность dropout.
         """
+        if kernel_sizes is None:
+            kernel_sizes = [3, 5, 7]
         super().__init__()
 
         self.input_size = input_size
@@ -134,7 +140,7 @@ class CNNRegressor(nn.Module):
 class NeuralNetworkTrainer:
     """Класс для обучения нейронных сетей."""
 
-    def __init__(self, random_state: int = 42, device: str | None = None):
+    def __init__(self, random_state: int = 42, device: str | None = None) -> None:
         """Инициализация тренера.
 
         Args:
@@ -182,7 +188,7 @@ class NeuralNetworkTrainer:
         y_train: pl.Series,
         X_val: pl.DataFrame | None = None,
         y_val: pl.Series | None = None,
-        hidden_sizes: list[int] = [512, 256, 128],
+        hidden_sizes: list[int] | None = None,
         dropout_rate: float = 0.3,
         epochs: int = 100,
         batch_size: int = 32,
@@ -205,6 +211,8 @@ class NeuralNetworkTrainer:
             patience: Терпение для early stopping.
             model_name: Название модели.
         """
+        if hidden_sizes is None:
+            hidden_sizes = [512, 256, 128]
         start_time = time.time()
 
         # Создаем модель
@@ -316,7 +324,7 @@ class NeuralNetworkTrainer:
         X_val: pl.DataFrame | None = None,
         y_val: pl.Series | None = None,
         num_filters: int = 64,
-        kernel_sizes: list[int] = [3, 5, 7],
+        kernel_sizes: list[int] | None = None,
         dropout_rate: float = 0.3,
         epochs: int = 100,
         batch_size: int = 32,
@@ -340,6 +348,8 @@ class NeuralNetworkTrainer:
             patience: Терпение для early stopping.
             model_name: Название модели.
         """
+        if kernel_sizes is None:
+            kernel_sizes = [3, 5, 7]
         start_time = time.time()
 
         # Создаем модель
@@ -457,7 +467,8 @@ class NeuralNetworkTrainer:
             Массив предсказаний.
         """
         if model_name not in self.models:
-            raise ValueError(f"Модель {model_name} не найдена")
+            msg = f"Модель {model_name} не найдена"
+            raise ValueError(msg)
 
         model = self.models[model_name]["model"]
         model.eval()
@@ -513,7 +524,8 @@ class NeuralNetworkTrainer:
             Словарь с информацией о модели.
         """
         if model_name not in self.models:
-            raise ValueError(f"Модель {model_name} не найдена")
+            msg = f"Модель {model_name} не найдена"
+            raise ValueError(msg)
 
         return self.models[model_name].copy()
 

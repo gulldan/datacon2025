@@ -1,7 +1,7 @@
 """Модуль для обучения классических моделей машинного обучения.
 
-Использует polars-ds для реализации линейной регрессии, ElasticNet
-и других классических алгоритмов машинного обучения.
+Реализует Random Forest, Gradient Boosting (XGBoost/LightGBM)
+и другие ensemble-методы как требуется в Task 3.
 """
 
 import logging
@@ -16,9 +16,9 @@ logger = logging.getLogger(__name__)
 
 
 class ClassicalModels:
-    """Класс для работы с классическими моделями машинного обучения."""
+    """Класс для работы с классическими ensemble-моделями машинного обучения."""
 
-    def __init__(self, random_state: int = 42):
+    def __init__(self, random_state: int = 42) -> None:
         """Инициализация с установкой random state.
 
         Args:
@@ -28,112 +28,24 @@ class ClassicalModels:
         self.models: dict[str, Any] = {}
         self.training_times: dict[str, float] = {}
 
-    def train_linear_regression(self, X_train: pl.DataFrame, y_train: pl.Series, model_name: str = "linear_regression") -> None:
-        """Обучает модель линейной регрессии с использованием polars-ds.
-
-        Args:
-            X_train: Обучающие признаки.
-            y_train: Целевая переменная.
-            model_name: Название модели для сохранения.
-        """
-        start_time = time.time()
-
-        try:
-            # Создаем DataFrame с признаками и целевой переменной
-            train_data = X_train.with_columns(y_train.alias("target"))
-
-            # Используем polars-ds для линейной регрессии
-            import polars_ds as pds
-
-            # Получаем названия признаков
-            feature_columns = X_train.columns
-
-            # Обучаем модель
-            model_result = train_data.select(
-                pds.ml.ols(target="target", features=feature_columns, add_intercept=True).alias("model")
-            )
-
-            # Сохраняем модель
-            self.models[model_name] = {"type": "linear_regression", "model": model_result, "feature_columns": feature_columns}
-
-            training_time = time.time() - start_time
-            self.training_times[model_name] = training_time
-
-            logger.info(f"Обучена модель {model_name} за {training_time:.3f} сек")
-
-        except Exception as e:
-            logger.error(f"Ошибка при обучении {model_name}: {e}")
-            # Fallback на sklearn
-            self._train_sklearn_linear_regression(X_train, y_train, model_name)
-
-    def train_elastic_net(
+    def train_random_forest(
         self,
         X_train: pl.DataFrame,
         y_train: pl.Series,
-        alpha: float = 1.0,
-        l1_ratio: float = 0.5,
-        model_name: str = "elastic_net",
+        n_estimators: int = 100,
+        max_depth: int | None = None,
+        model_name: str = "RandomForest",
     ) -> None:
-        """Обучает модель ElasticNet с использованием polars-ds.
+        """Обучает модель Random Forest Regressor.
 
         Args:
             X_train: Обучающие признаки.
             y_train: Целевая переменная.
-            alpha: Параметр регуляризации.
-            l1_ratio: Соотношение L1 и L2 регуляризации.
+            n_estimators: Количество деревьев в лесу.
+            max_depth: Максимальная глубина деревьев.
             model_name: Название модели для сохранения.
         """
-        start_time = time.time()
-
-        try:
-            # Создаем DataFrame с признаками и целевой переменной
-            train_data = X_train.with_columns(y_train.alias("target"))
-
-            # Используем polars-ds для ElasticNet
-            import polars_ds as pds
-
-            # Получаем названия признаков
-            feature_columns = X_train.columns
-
-            # Рассчитываем l1_reg и l2_reg из alpha и l1_ratio
-            l1_reg = alpha * l1_ratio
-            l2_reg = alpha * (1 - l1_ratio)
-
-            # Обучаем модель
-            model_result = train_data.select(
-                pds.ml.elastic_net(
-                    target="target", features=feature_columns, l1_reg=l1_reg, l2_reg=l2_reg, add_intercept=True
-                ).alias("model")
-            )
-
-            # Сохраняем модель
-            self.models[model_name] = {
-                "type": "elastic_net",
-                "model": model_result,
-                "feature_columns": feature_columns,
-                "alpha": alpha,
-                "l1_ratio": l1_ratio,
-            }
-
-            training_time = time.time() - start_time
-            self.training_times[model_name] = training_time
-
-            logger.info(f"Обучена модель {model_name} (α={alpha}, l1_ratio={l1_ratio}) за {training_time:.3f} сек")
-
-        except Exception as e:
-            logger.error(f"Ошибка при обучении {model_name}: {e}")
-            # Fallback на sklearn
-            self._train_sklearn_elastic_net(X_train, y_train, alpha, l1_ratio, model_name)
-
-    def _train_sklearn_linear_regression(self, X_train: pl.DataFrame, y_train: pl.Series, model_name: str) -> None:
-        """Fallback метод для обучения линейной регрессии через sklearn.
-
-        Args:
-            X_train: Обучающие признаки.
-            y_train: Целевая переменная.
-            model_name: Название модели для сохранения.
-        """
-        from sklearn.linear_model import LinearRegression
+        from sklearn.ensemble import RandomForestRegressor
 
         start_time = time.time()
 
@@ -142,54 +54,194 @@ class ClassicalModels:
         y_array = y_train.to_numpy()
 
         # Обучаем модель
-        model = LinearRegression()
-        model.fit(X_array, y_array)
-
-        # Сохраняем модель
-        self.models[model_name] = {"type": "sklearn_linear_regression", "model": model, "feature_columns": X_train.columns}
-
-        training_time = time.time() - start_time
-        self.training_times[model_name] = training_time
-
-        logger.info(f"Обучена sklearn модель {model_name} за {training_time:.3f} сек")
-
-    def _train_sklearn_elastic_net(
-        self, X_train: pl.DataFrame, y_train: pl.Series, alpha: float, l1_ratio: float, model_name: str
-    ) -> None:
-        """Fallback метод для обучения ElasticNet через sklearn.
-
-        Args:
-            X_train: Обучающие признаки.
-            y_train: Целевая переменная.
-            alpha: Параметр регуляризации.
-            l1_ratio: Соотношение L1 и L2 регуляризации.
-            model_name: Название модели для сохранения.
-        """
-        from sklearn.linear_model import ElasticNet
-
-        start_time = time.time()
-
-        # Конвертируем в numpy
-        X_array = X_train.to_numpy()
-        y_array = y_train.to_numpy()
-
-        # Обучаем модель
-        model = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, random_state=self.random_state)
+        model = RandomForestRegressor(
+            n_estimators=n_estimators,
+            max_depth=max_depth,
+            random_state=self.random_state,
+            n_jobs=-1,  # Используем все доступные ядра
+        )
         model.fit(X_array, y_array)
 
         # Сохраняем модель
         self.models[model_name] = {
-            "type": "sklearn_elastic_net",
+            "type": "random_forest",
             "model": model,
             "feature_columns": X_train.columns,
-            "alpha": alpha,
-            "l1_ratio": l1_ratio,
+            "n_estimators": n_estimators,
+            "max_depth": max_depth,
         }
 
         training_time = time.time() - start_time
         self.training_times[model_name] = training_time
 
-        logger.info(f"Обучена sklearn модель {model_name} (α={alpha}, l1_ratio={l1_ratio}) за {training_time:.3f} сек")
+        logger.info(
+            f"Обучена модель {model_name} (n_estimators={n_estimators}, max_depth={max_depth}) за {training_time:.3f} сек"
+        )
+
+    def train_xgboost(
+        self,
+        X_train: pl.DataFrame,
+        y_train: pl.Series,
+        n_estimators: int = 100,
+        max_depth: int = 6,
+        learning_rate: float = 0.1,
+        model_name: str = "XGBoost",
+    ) -> None:
+        """Обучает модель XGBoost Regressor.
+
+        Args:
+            X_train: Обучающие признаки.
+            y_train: Целевая переменная.
+            n_estimators: Количество бустинг-раундов.
+            max_depth: Максимальная глубина деревьев.
+            learning_rate: Скорость обучения.
+            model_name: Название модели для сохранения.
+        """
+        try:
+            import xgboost as xgb  # type: ignore
+        except ImportError:
+            logger.warning("XGBoost не установлен, используем GradientBoostingRegressor")
+            return self._train_gradient_boosting_fallback(X_train, y_train, n_estimators, max_depth, learning_rate, model_name)
+
+        start_time = time.time()
+
+        # Конвертируем в numpy
+        X_array = X_train.to_numpy()
+        y_array = y_train.to_numpy()
+
+        # Обучаем модель
+        model = xgb.XGBRegressor(
+            n_estimators=n_estimators,
+            max_depth=max_depth,
+            learning_rate=learning_rate,
+            random_state=self.random_state,
+            n_jobs=-1,
+            verbosity=0,
+        )
+        model.fit(X_array, y_array)
+
+        # Сохраняем модель
+        self.models[model_name] = {
+            "type": "xgboost",
+            "model": model,
+            "feature_columns": X_train.columns,
+            "n_estimators": n_estimators,
+            "max_depth": max_depth,
+            "learning_rate": learning_rate,
+        }
+
+        training_time = time.time() - start_time
+        self.training_times[model_name] = training_time
+
+        logger.info(
+            f"Обучена модель {model_name} (n_estimators={n_estimators}, max_depth={max_depth}, lr={learning_rate}) за {training_time:.3f} сек"
+        )
+        return None
+
+    def train_lightgbm(
+        self,
+        X_train: pl.DataFrame,
+        y_train: pl.Series,
+        n_estimators: int = 100,
+        max_depth: int = -1,
+        learning_rate: float = 0.1,
+        model_name: str = "LightGBM",
+    ) -> None:
+        """Обучает модель LightGBM Regressor.
+
+        Args:
+            X_train: Обучающие признаки.
+            y_train: Целевая переменная.
+            n_estimators: Количество бустинг-раундов.
+            max_depth: Максимальная глубина деревьев (-1 для неограниченной).
+            learning_rate: Скорость обучения.
+            model_name: Название модели для сохранения.
+        """
+        try:
+            import lightgbm as lgb  # type: ignore
+        except ImportError:
+            logger.warning("LightGBM не установлен, используем GradientBoostingRegressor")
+            return self._train_gradient_boosting_fallback(X_train, y_train, n_estimators, max_depth, learning_rate, model_name)
+
+        start_time = time.time()
+
+        # Конвертируем в numpy
+        X_array = X_train.to_numpy()
+        y_array = y_train.to_numpy()
+
+        # Обучаем модель
+        model = lgb.LGBMRegressor(
+            n_estimators=n_estimators,
+            max_depth=max_depth,
+            learning_rate=learning_rate,
+            random_state=self.random_state,
+            n_jobs=-1,
+            verbosity=-1,
+        )
+        model.fit(X_array, y_array)
+
+        # Сохраняем модель
+        self.models[model_name] = {
+            "type": "lightgbm",
+            "model": model,
+            "feature_columns": X_train.columns,
+            "n_estimators": n_estimators,
+            "max_depth": max_depth,
+            "learning_rate": learning_rate,
+        }
+
+        training_time = time.time() - start_time
+        self.training_times[model_name] = training_time
+
+        logger.info(
+            f"Обучена модель {model_name} (n_estimators={n_estimators}, max_depth={max_depth}, lr={learning_rate}) за {training_time:.3f} сек"
+        )
+        return None
+
+    def _train_gradient_boosting_fallback(
+        self, X_train: pl.DataFrame, y_train: pl.Series, n_estimators: int, max_depth: int, learning_rate: float, model_name: str
+    ) -> None:
+        """Fallback метод для обучения Gradient Boosting через sklearn.
+
+        Args:
+            X_train: Обучающие признаки.
+            y_train: Целевая переменная.
+            n_estimators: Количество бустинг-раундов.
+            max_depth: Максимальная глубина деревьев.
+            learning_rate: Скорость обучения.
+            model_name: Название модели для сохранения.
+        """
+        from sklearn.ensemble import GradientBoostingRegressor
+
+        start_time = time.time()
+
+        # Конвертируем в numpy
+        X_array = X_train.to_numpy()
+        y_array = y_train.to_numpy()
+
+        # Обучаем модель
+        model = GradientBoostingRegressor(
+            n_estimators=n_estimators,
+            max_depth=max_depth if max_depth > 0 else 3,  # sklearn не поддерживает -1
+            learning_rate=learning_rate,
+            random_state=self.random_state,
+        )
+        model.fit(X_array, y_array)
+
+        # Сохраняем модель
+        self.models[model_name] = {
+            "type": "gradient_boosting",
+            "model": model,
+            "feature_columns": X_train.columns,
+            "n_estimators": n_estimators,
+            "max_depth": max_depth,
+            "learning_rate": learning_rate,
+        }
+
+        training_time = time.time() - start_time
+        self.training_times[model_name] = training_time
+
+        logger.info(f"Обучена sklearn модель {model_name} (GradientBoosting) за {training_time:.3f} сек")
 
     def predict(self, model_name: str, X_test: pl.DataFrame) -> np.ndarray:
         """Делает предсказания с помощью обученной модели.
@@ -202,36 +254,14 @@ class ClassicalModels:
             Массив предсказаний.
         """
         if model_name not in self.models:
-            raise ValueError(f"Модель {model_name} не найдена")
+            msg = f"Модель {model_name} не найдена"
+            raise ValueError(msg)
 
         model_info = self.models[model_name]
-        model_type = model_info["type"]
 
-        if model_type in ["linear_regression", "elastic_net"]:
-            # Предсказания с polars-ds
-            try:
-                import polars_ds as pds
-
-                # Создаем DataFrame для предсказания
-                test_data = X_test.select(model_info["feature_columns"])
-
-                # Делаем предсказания
-                predictions = test_data.select(pds.ml.predict(model_info["model"].item()).alias("predictions"))
-
-                return predictions.to_series().to_numpy()
-
-            except Exception as e:
-                logger.warning(f"Ошибка предсказания polars-ds: {e}, используем fallback")
-                # Fallback для случаев когда polars-ds не работает
-                return np.random.normal(5.0, 1.0, X_test.shape[0])  # Заглушка
-
-        elif model_type in ["sklearn_linear_regression", "sklearn_elastic_net"]:
-            # Предсказания с sklearn
-            X_array = X_test.to_numpy()
-            return model_info["model"].predict(X_array)
-
-        else:
-            raise ValueError(f"Неизвестный тип модели: {model_type}")
+        # Конвертируем в numpy и делаем предсказания
+        X_array = X_test.to_numpy()
+        return model_info["model"].predict(X_array)
 
     def evaluate_model(self, model_name: str, X_test: pl.DataFrame, y_test: pl.Series) -> dict[str, float]:
         """Оценивает производительность модели.
@@ -270,7 +300,8 @@ class ClassicalModels:
             Словарь с информацией о модели.
         """
         if model_name not in self.models:
-            raise ValueError(f"Модель {model_name} не найдена")
+            msg = f"Модель {model_name} не найдена"
+            raise ValueError(msg)
 
         return self.models[model_name].copy()
 
@@ -286,7 +317,7 @@ class ClassicalModels:
 def train_classical_models(
     X_train: pl.DataFrame, y_train: pl.Series, X_test: pl.DataFrame, y_test: pl.Series, random_state: int = 42
 ) -> dict[str, dict[str, float]]:
-    """Обучает и оценивает набор классических моделей.
+    """Обучает и оценивает набор классических ensemble-моделей как требуется в Task 3.
 
     Args:
         X_train: Обучающие признаки.
@@ -300,9 +331,12 @@ def train_classical_models(
     """
     models = ClassicalModels(random_state=random_state)
 
-    # Обучаем модели
-    models.train_linear_regression(X_train, y_train, "LinearRegression")
-    models.train_elastic_net(X_train, y_train, alpha=0.1, l1_ratio=0.5, model_name="ElasticNet")
+    # Обучаем требуемые модели согласно Task 3
+    logger.info("Обучение Random Forest...")
+    models.train_random_forest(X_train, y_train, n_estimators=100, max_depth=10)
+
+    logger.info("Обучение XGBoost/Gradient Boosting...")
+    models.train_xgboost(X_train, y_train, n_estimators=100, max_depth=6, learning_rate=0.1)
 
     # Оцениваем модели
     results = {}

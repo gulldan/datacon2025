@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class DataPreparation:
     """Класс для подготовки данных к обучению моделей."""
 
-    def __init__(self, random_state: int = 42):
+    def __init__(self, random_state: int = 42) -> None:
         """Инициализация с установкой random state.
 
         Args:
@@ -43,7 +43,8 @@ class DataPreparation:
             elif file_path.endswith(".csv"):
                 df = pl.read_csv(file_path)
             else:
-                raise ValueError(f"Неподдерживаемый формат файла: {file_path}")
+                msg = f"Неподдерживаемый формат файла: {file_path}"
+                raise ValueError(msg)
 
             logger.info(f"Загружены данные: {df.shape[0]} строк, {df.shape[1]} колонок")
             return df
@@ -105,7 +106,7 @@ class DataPreparation:
                 continue
 
         # Сохраняем колонки с достаточной дисперсией
-        keep_columns = [target_column] + list(variances.keys())
+        keep_columns = [target_column, *list(variances.keys())]
         if "smiles" in df.columns:
             keep_columns.append("smiles")
         if "molecule_chembl_id" in df.columns:
@@ -137,7 +138,8 @@ class DataPreparation:
         elif method == "minmax":
             self.scaler = MinMaxScaler()
         else:
-            raise ValueError(f"Неподдерживаемый метод нормализации: {method}")
+            msg = f"Неподдерживаемый метод нормализации: {method}"
+            raise ValueError(msg)
 
         # Конвертируем в numpy для обработки
         features_array = df.select(feature_columns).to_numpy()

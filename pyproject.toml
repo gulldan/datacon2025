@@ -37,6 +37,11 @@ dependencies = [
     "polars-ds>=0.10.0",
     "mordred[full]>=1.2.0",
     "padelpy>=0.1.16",
+    "scikit-learn>=1.7.0",
+    "torch>=2.7.1",
+    "torch-geometric>=2.5.0",
+    "xgboost>=2.0.0",
+    "lightgbm>=4.0.0",
 ]
 
 [project.optional-dependencies]

@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 def create_performance_comparison(
     results: dict[str, dict[str, float]],
-    metrics: list[str] = ["mae", "rmse", "r2"],
+    metrics: list[str] | None = None,
     title: str = "Сравнение производительности моделей",
 ) -> go.Figure:
     """Создает график сравнения производительности моделей.
@@ -31,6 +31,8 @@ def create_performance_comparison(
         Plotly figure с графиком сравнения.
     """
     # Подготавливаем данные
+    if metrics is None:
+        metrics = ["mae", "rmse", "r2"]
     models = list(results.keys())
 
     # Создаем подграфики
@@ -99,11 +101,11 @@ def create_cv_stability_plot(
         go.Scatter(
             x=models,
             y=means,
-            error_y=dict(type="data", array=stds, visible=True),
+            error_y={"type": "data", "array": stds, "visible": True},
             mode="markers+lines",
-            marker=dict(size=10),
+            marker={"size": 10},
             name=f"{metric.upper()} (среднее ± std)",
-            line=dict(width=2),
+            line={"width": 2},
         )
     )
 
@@ -116,7 +118,7 @@ def create_cv_stability_plot(
                     x=[models[i]],
                     y=[value],
                     mode="markers",
-                    marker=dict(size=6, color=colors[j % len(colors)], opacity=0.7),
+                    marker={"size": 6, "color": colors[j % len(colors)], "opacity": 0.7},
                     showlegend=(i == 0),
                     name=f"Фолд {j + 1}" if i == 0 else "",
                     legendgroup=f"fold_{j}",
@@ -183,7 +185,7 @@ def create_prediction_scatter(y_true: np.ndarray, y_pred: np.ndarray, model_name
             x=y_true,
             y=y_pred,
             mode="markers",
-            marker=dict(size=4, opacity=0.6, color="blue"),
+            marker={"size": 4, "opacity": 0.6, "color": "blue"},
             name="Предсказания",
             text=[f"True: {t:.2f}<br>Pred: {p:.2f}" for t, p in zip(y_true, y_pred, strict=False)],
             hovertemplate="%{text}<extra></extra>",
@@ -196,7 +198,7 @@ def create_prediction_scatter(y_true: np.ndarray, y_pred: np.ndarray, model_name
             x=[min_val, max_val],
             y=[min_val, max_val],
             mode="lines",
-            line=dict(dash="dash", color="red", width=2),
+            line={"dash": "dash", "color": "red", "width": 2},
             name="Идеальное предсказание",
         )
     )
@@ -272,7 +274,7 @@ def create_combined_comparison_dashboard(
 
     fig.add_trace(go.Bar(x=models, y=test_mae, name="Тест MAE", marker_color="lightblue"), row=1, col=1)
     fig.add_trace(
-        go.Bar(x=models, y=cv_mae_mean, name="CV MAE", marker_color="darkblue", error_y=dict(type="data", array=cv_mae_std)),
+        go.Bar(x=models, y=cv_mae_mean, name="CV MAE", marker_color="darkblue", error_y={"type": "data", "array": cv_mae_std}),
         row=1,
         col=1,
     )
@@ -298,7 +300,7 @@ def create_combined_comparison_dashboard(
             y=cv_rmse_mean,
             name="CV RMSE",
             marker_color="darkred",
-            error_y=dict(type="data", array=cv_rmse_std),
+            error_y={"type": "data", "array": cv_rmse_std},
             showlegend=False,
         ),
         row=1,
@@ -326,7 +328,7 @@ def create_combined_comparison_dashboard(
             y=cv_r2_mean,
             name="CV R²",
             marker_color="darkgreen",
-            error_y=dict(type="data", array=cv_r2_std),
+            error_y={"type": "data", "array": cv_r2_std},
             showlegend=False,
         ),
         row=1,
@@ -351,7 +353,7 @@ def create_combined_comparison_dashboard(
 
     fig.add_trace(
         go.Scatter(
-            x=models, y=cv_stability, mode="markers+lines", marker=dict(size=10), name="CV коэф. вариации", showlegend=False
+            x=models, y=cv_stability, mode="markers+lines", marker={"size": 10}, name="CV коэф. вариации", showlegend=False
         ),
         row=2,
         col=2,
@@ -360,7 +362,7 @@ def create_combined_comparison_dashboard(
     # 6. Предсказания (если есть)
     if predictions:
         # Берем первую модель для примера
-        first_model = list(predictions.keys())[0]
+        first_model = next(iter(predictions.keys()))
         y_true, y_pred = predictions[first_model]
 
         fig.add_trace(
@@ -368,7 +370,7 @@ def create_combined_comparison_dashboard(
                 x=y_true,
                 y=y_pred,
                 mode="markers",
-                marker=dict(size=4, opacity=0.6),
+                marker={"size": 4, "opacity": 0.6},
                 name=f"Предсказания {first_model}",
                 showlegend=False,
             ),
@@ -383,7 +385,7 @@ def create_combined_comparison_dashboard(
                 x=[min_val, max_val],
                 y=[min_val, max_val],
                 mode="lines",
-                line=dict(dash="dash", color="red"),
+                line={"dash": "dash", "color": "red"},
                 name="Идеальное",
                 showlegend=False,
             ),
@@ -417,7 +419,7 @@ def create_combined_comparison_dashboard(
 def create_model_ranking(
     test_results: dict[str, dict[str, float]],
     cv_results: dict[str, dict[str, list[float]]],
-    weights: dict[str, float] = {"mae": 0.4, "rmse": 0.3, "r2": 0.2, "stability": 0.1},
+    weights: dict[str, float] | None = None,
 ) -> pl.DataFrame:
     """Создает рейтинг моделей на основе взвешенных метрик.
 
@@ -429,6 +431,8 @@ def create_model_ranking(
     Returns:
         DataFrame с рейтингом моделей.
     """
+    if weights is None:
+        weights = {"mae": 0.4, "rmse": 0.3, "r2": 0.2, "stability": 0.1}
     ranking_data = []
 
     # Нормализуем метрики для сравнения

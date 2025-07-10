@@ -12,8 +12,8 @@ Median IC50: 1800.00 nM
 Mean IC50: 207557.14 nM
 
 ACTIVITY CLASSIFICATION
-Low Activity: 2,036 (55.6%)
 Moderately Active: 854 (23.3%)
+Low Activity: 2,036 (55.6%)
 Highly Active: 771 (21.1%)
 
 MOLECULAR PROPERTIES

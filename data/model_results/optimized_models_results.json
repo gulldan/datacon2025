@@ -1,0 +1,29 @@
+{
+  "OptimizedMLPBaseline": {
+    "model_name": "OptimizedMLPBaseline",
+    "r2": 0.0025611519813537598,
+    "mae": 1.0871222019195557,
+    "training_time": 1.7202844619750977,
+    "device": "cuda",
+    "batch_size": 64,
+    "epochs": 20
+  },
+  "OptimizedSimpleGCN": {
+    "model_name": "OptimizedSimpleGCN",
+    "r2": 0.009356975555419922,
+    "mae": 1.082139253616333,
+    "training_time": 1.8729972839355469,
+    "device": "cuda",
+    "batch_size": 64,
+    "epochs": 20
+  },
+  "OptimizedSimpleGAT": {
+    "model_name": "OptimizedSimpleGAT",
+    "r2": 0.030242085456848145,
+    "mae": 1.0704066753387451,
+    "training_time": 1.9750134944915771,
+    "device": "cuda",
+    "batch_size": 64,
+    "epochs": 20
+  }
+}
