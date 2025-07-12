@@ -1,0 +1,15 @@
+Molecule Generation Summary Report
+========================================
+
+Total candidates generated: 1
+Average predicted pIC50: 6.68
+Average QED: 0.32
+Average SA Score: 1.50
+Average molecular weight: 358.44
+Average LogP: 6.89
+Compounds with 0 Lipinski violations: 0
+Compounds with 1 Lipinski violation: 1
+
+Top 10 compounds by predicted activity:
+1. SMILES: O=C(c1ccc2ccccc2c1)c1ccccc1-c1cccc2ccccc12
+   pIC50: 6.68, QED: 0.32, SA: 1.50

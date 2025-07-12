@@ -44,7 +44,7 @@ class GraphTransformer(nn.Module):
         num_heads: int = 8,
         dropout: float = 0.2,
         output_dim: int = 1,
-    ):
+    ) -> None:
         super().__init__()
 
         self.input_projection = nn.Sequential(
@@ -124,7 +124,7 @@ class FoundationModel(nn.Module):
         num_heads: int = 16,
         dropout: float = 0.2,
         output_dim: int = 1,
-    ):
+    ) -> None:
         super().__init__()
 
         # Улучшенный encoder
@@ -213,7 +213,7 @@ class MultimodalGNN(nn.Module):
         num_layers: int = 4,
         dropout: float = 0.2,
         output_dim: int = 1,
-    ):
+    ) -> None:
         super().__init__()
 
         # Graph convolution branch
@@ -289,7 +289,7 @@ class AttentionGNN(nn.Module):
         num_heads: int = 8,
         dropout: float = 0.2,
         output_dim: int = 1,
-    ):
+    ) -> None:
         super().__init__()
 
         # Убеждаемся что hidden_dim делится на num_heads
@@ -368,7 +368,7 @@ class ModernMPNN(nn.Module):
         num_layers: int = 4,
         dropout: float = 0.2,
         output_dim: int = 1,
-    ):
+    ) -> None:
         super().__init__()
 
         # Используем GCN слои вместо кастомного MessagePassing
@@ -417,7 +417,7 @@ class ModernMPNN(nn.Module):
 class ModernMessagePassing(MessagePassing):
     """Исправленная Message Passing с правильной сигнатурой."""
 
-    def __init__(self, input_dim, hidden_dim, dropout=0.2):
+    def __init__(self, input_dim, hidden_dim, dropout=0.2) -> None:
         super().__init__(aggr="add", node_dim=0)
 
         self.input_dim = input_dim
@@ -461,7 +461,7 @@ class ModernMessagePassing(MessagePassing):
 class ModernModels:
     """Улучшенный менеджер для современных моделей."""
 
-    def __init__(self, epochs=100, lr=0.001, batch_size=32, random_state=42):
+    def __init__(self, epochs=100, lr=0.001, batch_size=32, random_state=42) -> None:
         self.epochs = epochs
         self.lr = lr
         self.batch_size = batch_size
@@ -520,7 +520,8 @@ class ModernModels:
         elif model_name == "ModernMPNN":
             model = ModernMPNN(input_dim=input_dim, **config)
         else:
-            raise ValueError(f"Unknown model: {model_name}")
+            msg = f"Unknown model: {model_name}"
+            raise ValueError(msg)
 
         model = model.to(self.device)
 
@@ -551,10 +552,7 @@ class ModernModels:
                 batch_indices = []
                 current_idx = 0
                 for graph in X_train:
-                    if hasattr(graph, "batch") and graph.batch is not None:
-                        batch_size_curr = graph.batch.max().item() + 1
-                    else:
-                        batch_size_curr = 1
+                    batch_size_curr = graph.batch.max().item() + 1 if hasattr(graph, "batch") and graph.batch is not None else 1
                     batch_indices.extend(range(current_idx, current_idx + batch_size_curr))
                     current_idx += batch_size_curr
                     if current_idx >= len(batch_data.batch.unique()):

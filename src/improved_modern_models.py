@@ -29,11 +29,11 @@ logger = get_logger(__name__)
 class MolecularDataset(Dataset):
     """Оптимизированный датасет для молекулярных данных."""
 
-    def __init__(self, graphs: list[Data], targets: list[float]):
+    def __init__(self, graphs: list[Data], targets: list[float]) -> None:
         self.graphs = graphs
         self.targets = torch.tensor(targets, dtype=torch.float32)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.graphs)
 
     def __getitem__(self, idx):
@@ -138,13 +138,10 @@ def prepare_graph_data_optimized(
 class OptimizedSimpleGCN(nn.Module):
     """Оптимизированная простая GCN модель."""
 
-    def __init__(self, input_dim: int = 5, hidden_dim: int = 64, num_layers: int = 2):
+    def __init__(self, input_dim: int = 5, hidden_dim: int = 64, num_layers: int = 2) -> None:
         super().__init__()
 
-        self.conv_layers = nn.ModuleList([
-            GCNConv(input_dim if i == 0 else hidden_dim, hidden_dim)
-            for i in range(num_layers)
-        ])
+        self.conv_layers = nn.ModuleList([GCNConv(input_dim if i == 0 else hidden_dim, hidden_dim) for i in range(num_layers)])
 
         self.dropout = nn.Dropout(0.3)
         self.predictor = nn.Linear(hidden_dim, 1)
@@ -164,19 +161,21 @@ class OptimizedSimpleGCN(nn.Module):
 class OptimizedSimpleGAT(nn.Module):
     """Оптимизированная простая GAT модель."""
 
-    def __init__(self, input_dim: int = 5, hidden_dim: int = 64, num_layers: int = 2, heads: int = 4):
+    def __init__(self, input_dim: int = 5, hidden_dim: int = 64, num_layers: int = 2, heads: int = 4) -> None:
         super().__init__()
 
-        self.gat_layers = nn.ModuleList([
-            GATv2Conv(
-                input_dim if i == 0 else hidden_dim,
-                hidden_dim // heads if i < num_layers - 1 else hidden_dim,
-                heads=heads if i < num_layers - 1 else 1,
-                dropout=0.3,
-                concat=i < num_layers - 1,
-            )
-            for i in range(num_layers)
-        ])
+        self.gat_layers = nn.ModuleList(
+            [
+                GATv2Conv(
+                    input_dim if i == 0 else hidden_dim,
+                    hidden_dim // heads if i < num_layers - 1 else hidden_dim,
+                    heads=heads if i < num_layers - 1 else 1,
+                    dropout=0.3,
+                    concat=i < num_layers - 1,
+                )
+                for i in range(num_layers)
+            ]
+        )
 
         self.dropout = nn.Dropout(0.3)
         self.predictor = nn.Linear(hidden_dim, 1)
@@ -196,18 +195,20 @@ class OptimizedSimpleGAT(nn.Module):
 class OptimizedMLPBaseline(nn.Module):
     """Оптимизированная MLP baseline модель."""
 
-    def __init__(self, input_dim: int = 5, hidden_dim: int = 128, num_layers: int = 3):
+    def __init__(self, input_dim: int = 5, hidden_dim: int = 128, num_layers: int = 3) -> None:
         super().__init__()
 
         layers = []
         prev_dim = input_dim
 
-        for i in range(num_layers):
-            layers.extend([
-                nn.Linear(prev_dim, hidden_dim),
-                nn.ReLU(),
-                nn.Dropout(0.3),
-            ])
+        for _i in range(num_layers):
+            layers.extend(
+                [
+                    nn.Linear(prev_dim, hidden_dim),
+                    nn.ReLU(),
+                    nn.Dropout(0.3),
+                ]
+            )
             prev_dim = hidden_dim
 
         layers.append(nn.Linear(prev_dim, 1))
@@ -254,7 +255,7 @@ def train_model_optimized(
         batch_size=batch_size,
         shuffle=True,
         num_workers=2,  # Многопоточность
-        pin_memory=True if device == "cuda" else False,
+        pin_memory=device == "cuda",
     )
 
     test_loader = GeometricDataLoader(
@@ -262,7 +263,7 @@ def train_model_optimized(
         batch_size=batch_size,
         shuffle=False,
         num_workers=2,
-        pin_memory=True if device == "cuda" else False,
+        pin_memory=device == "cuda",
     )
 
     # Перемещение модели на устройство

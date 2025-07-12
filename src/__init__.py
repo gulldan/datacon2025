@@ -57,6 +57,7 @@ except ImportError as e:
 GRAPH_UTILS_AVAILABLE = False
 try:
     from .graph_utils import prepare_graph_data
+
     GRAPH_UTILS_AVAILABLE = True
     logger.info("✅ Графовые утилиты доступны")
 except ImportError as e:
@@ -68,40 +69,34 @@ __version__ = "1.2.0"
 
 # Главные функции и классы
 __all__ = [
-    # Версия
-    "__version__",
-
-    # Логирование
-    "get_logger",
-
-    # Управление данными
-    "prepare_data_pipeline",
-
+    "GRAPH_UTILS_AVAILABLE",
+    # Флаги доступности
+    "MODERN_MODELS_AVAILABLE",
     # Классические модели
     "ClassicalModels",
     "CrossValidation",
-
     # Нейронные сети
     # Оптимизированная аугментация
     "MolecularAugmentation",
-    "augment_molecular_data",
-    "augment_molecular_data_optimized",
-
     # Оптимизированные современные модели
     "OptimizedMLPBaseline",
     "OptimizedSimpleGAT",
     "OptimizedSimpleGCN",
+    # Версия
+    "__version__",
+    "augment_molecular_data",
+    "augment_molecular_data_optimized",
     "create_molecular_graph_fast",
-    "prepare_graph_data_optimized",
-    "train_model_optimized",
-
+    # Логирование
+    "get_logger",
+    # Управление данными
+    "prepare_data_pipeline",
     # Графовые утилиты
     "prepare_graph_data",
-
-    # Флаги доступности
-    "MODERN_MODELS_AVAILABLE",
-    "GRAPH_UTILS_AVAILABLE",
+    "prepare_graph_data_optimized",
+    "train_model_optimized",
 ]
+
 
 # Проверка зависимостей
 def check_dependencies():

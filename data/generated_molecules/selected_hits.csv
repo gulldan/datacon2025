@@ -1,0 +1,2 @@
+SMILES,qed,sa_score,toxicophore_count,lipinski_violations,molecular_weight,logp,predicted_pIC50,comment
+O=C(c1ccc2ccccc2c1)c1ccccc1-c1cccc2ccccc12,0.3208927460080514,1.5,0,1,358.44000000000005,6.8910000000000045,6.679263521127671,Проходит все критерии отбора

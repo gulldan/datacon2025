@@ -63,7 +63,7 @@ def process_smiles_batch(smiles_batch: list[str], n_variants: int = 3) -> list[s
 class MolecularAugmentation:
     """Оптимизированный класс для аугментации молекулярных данных."""
 
-    def __init__(self, random_state: int = 42, n_workers: int | None = None):
+    def __init__(self, random_state: int = 42, n_workers: int | None = None) -> None:
         """Инициализация с оптимизацией ресурсов."""
         self.random_state = random_state
         self.n_workers = n_workers or min(cpu_count(), 8)  # Ограничиваем количество процессов
@@ -80,7 +80,7 @@ class MolecularAugmentation:
 
         # Разбиваем на батчи
         batch_size = max(10, len(smiles_list) // (self.n_workers * 4))
-        batches = [smiles_list[i:i + batch_size] for i in range(0, len(smiles_list), batch_size)]
+        batches = [smiles_list[i : i + batch_size] for i in range(0, len(smiles_list), batch_size)]
 
         logger.info(f"Обработка {len(batches)} батчей размером ~{batch_size}")
 
@@ -111,8 +111,7 @@ class MolecularAugmentation:
 
         # Находим числовые колонки
         numeric_columns = [
-            col for col in descriptors_df.columns
-            if descriptors_df[col].dtype in [pl.Float64, pl.Float32, pl.Int64, pl.Int32]
+            col for col in descriptors_df.columns if descriptors_df[col].dtype in [pl.Float64, pl.Float32, pl.Int64, pl.Int32]
         ]
 
         if not numeric_columns:
@@ -132,7 +131,7 @@ class MolecularAugmentation:
                 numeric_data[~mask, i] = median_val
 
         # Вычисляем статистики векторно
-        means = np.nanmean(numeric_data, axis=0)
+        np.nanmean(numeric_data, axis=0)
         stds = np.nanstd(numeric_data, axis=0)
         mins = np.nanmin(numeric_data, axis=0)
         maxs = np.nanmax(numeric_data, axis=0)
@@ -165,9 +164,7 @@ class MolecularAugmentation:
             for col in non_numeric_columns:
                 col_values = descriptors_df[col].to_list()
                 extended_values = col_values * (n_variants + 1)
-                augmented_df = augmented_df.with_columns(
-                    pl.Series(name=col, values=extended_values[:len(augmented_df)])
-                )
+                augmented_df = augmented_df.with_columns(pl.Series(name=col, values=extended_values[: len(augmented_df)]))
 
         logger.info(f"Векторизованная аугментация завершена: {len(descriptors_df)} -> {len(augmented_df)}")
         return augmented_df
@@ -213,18 +210,12 @@ class MolecularAugmentation:
             augmented_smiles = augmented_smiles[:min_len]
             augmented_targets = augmented_targets[:min_len]
 
-            augmented_df = pl.DataFrame({
-                smiles_column: augmented_smiles,
-                target_column: augmented_targets
-            })
+            augmented_df = pl.DataFrame({smiles_column: augmented_smiles, target_column: augmented_targets})
 
         if "descriptor_noise" in techniques:
             logger.info("Применяем векторизованный descriptor noise injection...")
 
-            descriptor_columns = [
-                col for col in augmented_df.columns
-                if col not in [smiles_column, target_column]
-            ]
+            descriptor_columns = [col for col in augmented_df.columns if col not in [smiles_column, target_column]]
 
             if descriptor_columns:
                 descriptors_df = augmented_df.select(descriptor_columns)
@@ -237,16 +228,14 @@ class MolecularAugmentation:
 
                 if smiles_column in augmented_df.columns:
                     original_smiles = df[smiles_column].to_list()
-                    extended_smiles = (original_smiles * n_multiplier)[:len(augmented_descriptors)]
+                    extended_smiles = (original_smiles * n_multiplier)[: len(augmented_descriptors)]
                     augmented_descriptors = augmented_descriptors.with_columns(
                         pl.Series(name=smiles_column, values=extended_smiles)
                     )
 
                 original_targets = df[target_column].to_list()
-                extended_targets = (original_targets * n_multiplier)[:len(augmented_descriptors)]
-                augmented_df = augmented_descriptors.with_columns(
-                    pl.Series(name=target_column, values=extended_targets)
-                )
+                extended_targets = (original_targets * n_multiplier)[: len(augmented_descriptors)]
+                augmented_df = augmented_descriptors.with_columns(pl.Series(name=target_column, values=extended_targets))
 
         logger.info("Оптимизированная аугментация завершена")
         logger.info(f"Финальный размер: {len(augmented_df)} образцов")
